@@ -45,7 +45,7 @@ func main() {
 
 	// Benchmark-specific configuration
 	numRuns, _ := strconv.Atoi(getEnv("NUM_RUNS", "1000"))
-	initialSize, _ := strconv.Atoi(getEnv("INITIAL_SIZE", "200"))
+	initialSize, _ := strconv.Atoi(getEnv("INITIAL_SIZE", "500"))
 
 	if initialSize <= 0 {
 		log.Fatalf("INITIAL_SIZE must be > 0 to perform the 'Read One' benchmark.")
@@ -241,6 +241,7 @@ func benchmarkBlobAppend(ctx context.Context, tbl *bigtable.Table, rowKey, newKe
 	} else {
 		originalJSONBytes = []byte("{}") // Start with empty map
 	}
+	//log.Printf("json size: %d", len(originalJSONBytes))
 
 	// 2. Deserialize, mutate, reserialize
 	currentMap := make(map[string]string)
@@ -443,13 +444,11 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-// === Benchmark Functions: SQL (NEW) ===
-
 // benchmarkSqlReadAll reads all columns in the family using a Bigtable SQL query.
 func benchmarkSqlRead(ctx context.Context, client *bigtable.Client, query string) (time.Duration, error) {
 	stmt, err := client.PrepareStatement(ctx, query, nil)
 	if err != nil {
-		return 0, fmt.Errorf("ExecuteQuery failed: %w", err)
+		return 0, fmt.Errorf("prepare failed: %w", err)
 	}
 
 	start := time.Now()
@@ -459,9 +458,10 @@ func benchmarkSqlRead(ctx context.Context, client *bigtable.Client, query string
 		count += 1
 		return true
 	})
-
+	if err != nil {
+		return 0, fmt.Errorf("execute failed: %w", err)
+	}
 	duration := time.Since(start)
-	//log.Printf("executing query: got %d from %s", count, query)
 	return duration, nil
 }
 
